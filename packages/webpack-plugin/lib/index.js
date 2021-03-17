@@ -878,6 +878,8 @@ try {
           } else {
             if (mpx.pluginMainResource && chunk.entryModule && mpx.pluginMainResource === chunk.entryModule.rawRequest) {
               source.add('module.exports =\n')
+            } else if (mpx.miniToPluginExport && chunk.entryModule && mpx.miniToPluginExport.includes(chunk.entryModule.rawRequest)) {
+              source.add('module.exports =\n')
             }
             source.add(originalSource)
           }

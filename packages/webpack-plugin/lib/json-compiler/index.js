@@ -629,12 +629,50 @@ module.exports = function (raw = '{}') {
       }
     }
 
+    const addMiniToPluginFile = file => {
+      if (mpx.miniToPluginExport) {
+        mpx.miniToPluginExport.push(file)
+      } else {
+        mpx.miniToPluginExport = [file]
+      }
+    }
+
+    /* 导出到插件 */
+    const processPlugins = (plugins, context, callback) => {
+      if (plugins) {
+        async.forEachOf(plugins, (plugin, name, callback) => {
+          if (plugin.export) {
+            let pluginExport = plugin.export
+            if (resolveMode === 'native') {
+              pluginExport = urlToRequest(pluginExport)
+            }
+            resolve(context, pluginExport, (err, resource, info) => {
+              if (err) return callback(err)
+              const { resourcePath } = parseRequest(resource)
+              // 获取 export 的模块名
+              const relative = path.relative(context, resourcePath)
+              const name = toPosix(/^(.*?)(\.[^.]*)?$/.exec(relative)[1])
+              if (/^\./.test(name)) {
+                return callback(new Error(`The miniprogram plugins' export path ${plugin.export} must be in the context ${context}!`))
+              }
+              plugin.export = name + '.js'
+              addMiniToPluginFile(resource)
+              addEntrySafely(resource, name, callback)
+            })
+          }
+        }, callback)
+      }
+    }
+
     // 串行处理，先处理主包代码，再处理分包代码，为了正确识别出分包中定义的组件属于主包还是分包
     let errors = []
     // 外部收集errors，确保整个series流程能够执行完
     async.series([
       (callback) => {
         async.parallel([
+          (callback) => {
+            processPlugins(json.plugins, this.context, callback)
+          },
           (callback) => {
             processPages(json.pages, '', '', this.context, callback)
           },
