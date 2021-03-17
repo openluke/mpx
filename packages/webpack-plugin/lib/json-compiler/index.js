@@ -630,23 +630,21 @@ module.exports = function (raw = '{}') {
     }
 
     const addMiniToPluginFile = file => {
-      if (mpx.miniToPluginExport) {
-        mpx.miniToPluginExport.push(file)
-      } else {
-        mpx.miniToPluginExport = [file]
-      }
+      mpx.miniToPluginExport
+        ? mpx.miniToPluginExport.push(file)
+        : mpx.miniToPluginExport = [file]
     }
 
     /* 导出到插件 */
     const processPlugins = (plugins, context, callback) => {
       if (plugins) {
-        async.forEachOf(plugins, (plugin, name, callback) => {
+        async.forEachOf(plugins, (plugin, _, callback) => {
           if (plugin.export) {
             let pluginExport = plugin.export
             if (resolveMode === 'native') {
               pluginExport = urlToRequest(pluginExport)
             }
-            resolve(context, pluginExport, (err, resource, info) => {
+            resolve(context, pluginExport, (err, resource) => {
               if (err) return callback(err)
               const { resourcePath } = parseRequest(resource)
               // 获取 export 的模块名
