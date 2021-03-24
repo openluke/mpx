@@ -454,7 +454,14 @@ module.exports = function (raw = '{}') {
         mpx.componentsMap[tarRoot] = {}
         mpx.staticResourcesMap[tarRoot] = {}
         mpx.subpackageModulesMap[tarRoot] = {}
-        processPages(subPackage.pages, srcRoot, tarRoot, context, callback)
+        async.series([
+          (callback) => {
+            processPages(subPackage.pages, srcRoot, tarRoot, context, callback)
+          },
+          (callback) => {
+            processPlugins(subPackage.plugins, context, tarRoot, callback)
+          }
+        ], callback)
       } else {
         callback()
       }
@@ -630,21 +637,23 @@ module.exports = function (raw = '{}') {
     }
 
     const addMiniToPluginFile = file => {
-      mpx.miniToPluginExport
-        ? mpx.miniToPluginExport.push(file)
-        : mpx.miniToPluginExport = [file]
+      if (mpx.miniToPluginExport) {
+        mpx.miniToPluginExport.push(file)
+      } else {
+        mpx.miniToPluginExport = [file]
+      }
     }
 
     /* 导出到插件 */
-    const processPlugins = (plugins, context, callback) => {
+    const processPlugins = (plugins, context, root = '', callback) => {
       if (plugins) {
-        async.forEachOf(plugins, (plugin, _, callback) => {
+        async.forEachOf(plugins, (plugin, name, callback) => {
           if (plugin.export) {
             let pluginExport = plugin.export
             if (resolveMode === 'native') {
               pluginExport = urlToRequest(pluginExport)
             }
-            resolve(context, pluginExport, (err, resource) => {
+            resolve(context, pluginExport, (err, resource, info) => {
               if (err) return callback(err)
               const { resourcePath } = parseRequest(resource)
               // 获取 export 的模块名
@@ -655,7 +664,7 @@ module.exports = function (raw = '{}') {
               }
               plugin.export = name + '.js'
               addMiniToPluginFile(resource)
-              addEntrySafely(resource, name, callback)
+              addEntrySafely(resource, root ? `${root}/${name}` : name, callback)
             })
           }
         }, callback)
@@ -669,7 +678,7 @@ module.exports = function (raw = '{}') {
       (callback) => {
         async.parallel([
           (callback) => {
-            processPlugins(json.plugins, this.context, callback)
+            processPlugins(json.plugins, this.context, '', callback)
           },
           (callback) => {
             processPages(json.pages, '', '', this.context, callback)
