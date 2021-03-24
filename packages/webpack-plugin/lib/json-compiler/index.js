@@ -454,7 +454,7 @@ module.exports = function (raw = '{}') {
         mpx.componentsMap[tarRoot] = {}
         mpx.staticResourcesMap[tarRoot] = {}
         mpx.subpackageModulesMap[tarRoot] = {}
-        async.series([
+        async.parallel([
           (callback) => {
             processPages(subPackage.pages, srcRoot, tarRoot, context, callback)
           },
