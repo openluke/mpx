@@ -664,7 +664,7 @@ module.exports = function (raw = '{}') {
             }
             plugin.export = name + '.js'
             addMiniToPluginFile(resource)
-            addEntrySafely(resource, root ? `${root}/${name}` : name, callback)
+            addEntrySafely(resource, toPosix(root ? `${root}/${name}` : name), callback)
           })
         }
       }, callback)
