@@ -459,7 +459,7 @@ module.exports = function (raw = '{}') {
             processPages(subPackage.pages, srcRoot, tarRoot, context, callback)
           },
           (callback) => {
-            processPlugins(subPackage.plugins, context, tarRoot, callback)
+            processPlugins(subPackage.plugins, srcRoot, tarRoot, context, callback)
           }
         ], callback)
       } else {
@@ -637,16 +637,17 @@ module.exports = function (raw = '{}') {
     }
 
     const addMiniToPluginFile = file => {
-      if (mpx.miniToPluginExport) {
-        mpx.miniToPluginExport.push(file)
+      if (mpx.miniToPluginExports) {
+        mpx.miniToPluginExports.add(file)
       } else {
-        mpx.miniToPluginExport = [file]
+        mpx.miniToPluginExports = new Set([file])
       }
     }
 
     /* 导出到插件 */
-    const processPlugins = (plugins, context, root = '', callback) => {
+    const processPlugins = (plugins, srcRoot = '', tarRoot = '', context, callback) => {
       if (mpx.mode !== 'wx' || !plugins) return callback() // 目前只有微信支持导出到插件
+      context = path.join(context, srcRoot)
       async.forEachOf(plugins, (plugin, name, callback) => {
         if (plugin.export) {
           let pluginExport = plugin.export
@@ -663,8 +664,9 @@ module.exports = function (raw = '{}') {
               return callback(new Error(`The miniprogram plugins' export path ${plugin.export} must be in the context ${context}!`))
             }
             plugin.export = name + '.js'
+            currentEntry.addChild(getEntryNode(resource, 'PluginExport'))
             addMiniToPluginFile(resource)
-            addEntrySafely(resource, toPosix(root ? `${root}/${name}` : name), callback)
+            addEntrySafely(resource, toPosix(tarRoot ? `${tarRoot}/${name}` : name), callback)
           })
         }
       }, callback)
@@ -677,7 +679,7 @@ module.exports = function (raw = '{}') {
       (callback) => {
         async.parallel([
           (callback) => {
-            processPlugins(json.plugins, this.context, '', callback)
+            processPlugins(json.plugins, '', '', this.context, callback)
           },
           (callback) => {
             processPages(json.pages, '', '', this.context, callback)

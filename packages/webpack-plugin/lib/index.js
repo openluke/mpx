@@ -878,7 +878,8 @@ try {
           } else {
             if (mpx.pluginMainResource && chunk.entryModule && mpx.pluginMainResource === chunk.entryModule.rawRequest) {
               source.add('module.exports =\n')
-            } else if (mpx.miniToPluginExport && chunk.entryModule && mpx.miniToPluginExport.includes(chunk.entryModule.rawRequest)) {
+            // mpx.miniToPluginExports is a Set
+            } else if (mpx.miniToPluginExports && chunk.entryModule && mpx.miniToPluginExports.has(chunk.entryModule.rawRequest)) {
               source.add('module.exports =\n')
             }
             source.add(originalSource)
